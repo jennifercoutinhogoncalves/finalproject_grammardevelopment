@@ -1,0 +1,778 @@
+"Grammar Development: Final Project"
+"Summer Semester 2024"
+"Jennifer Coutinho Goncalves"
+"1001682"
+
+DEMO   PORTUGUESE   CONFIG (1.0)
+  ROOTCAT ROOT.  
+  FILES common.templates.lfg. 
+  LEXENTRIES (DEMO PORTUGUESE).
+  TEMPLATES (DEMO PORTUGUESE) (STANDARD COMMON). 
+  RULES (DEMO PORTUGUESE).
+  GOVERNABLERELATIONS SUBJ OBJ OBJ2 COMP XCOMP OBL OBL-?+.
+  SEMANTICFUNCTIONS ADJUNCT  TOPIC FOCUS POSS STANDARD.
+  NONDISTRIBUTIVES NUM PERS COORD-FORM.
+  EPSILON e.
+  OPTIMALITYORDER NOGOOD PPadj +PPattach +sg-imp +cat +NullSubj +Advattach +APattach.
+  GENOPTIMALITYORDER GenBadPunct NOGOOD +Punct.
+
+----
+
+DEMO   PORTUGUESE   RULES (1.0)
+
+"RULES"
+
+ROOT --> { S | Simp }.			"allow imperatives as well"
+
+Simp --> e: (^ SUBJ PRED) = 'pro'	"allow only imperative verbforms"
+     	    (^ SUBJ PERS) = 2
+       	    (^ MOOD) = imperative;	
+ 	 VP
+ 	 EXCL.				"obligatory EXCL. for imperatives"
+
+
+S --> { NP: (^ SUBJ) = !
+	    (! CASE) = nom
+      | e: (^ SUBJ PRED) = 'pro'		"allow null-subject as well"	
+      	   @(OT-MARK NullSubj) }		"prefer null-subject"
+      	VP: (^ TNS-ASP TENSE);		
+ 	    (PERIOD: @(OT-MARK Punct)).
+
+VP --> (AUX)
+       AdvP*			
+       V: ^=!;
+       AdvP*: @(OT-MARK Advattach);		"prefer AdvPs after the verb (typical position)"		
+       (NP: (^ OBJ)=!)				"direct OBJ"
+       PP*: { ! $ (^ ADJUNCT) 			"PPs can be all types of ADJUNCTS"
+              (! PTYPE) =c sem 
+             | (^ OBL) = ! }.	
+
+NP --> { { (D)					"optional DET"
+	 | (D					"obilgatory DET followed by poss"
+	   PRON: (^ PRON ) = !			"allow possessive pronouns"
+	     	 (! PRON-TYPE) =c poss		"have to be poss"						
+	     	 (^ NUM) = (! NUM)		"poss agreement"
+	     	 (^ GEN) = (! GEN)) }	
+ 	    AP*: ! $ (^ ADJUNCT)
+	    	 (^ NUM) = (! NUM)		"adjective agreement" 
+	    	 (^ GEN) = (! GEN);
+ 	    { N: (^ NTYPE) = count		"head of NP"
+	    | { D   	     			"obligatory DET followed by name"      
+	      	N: (^ NTYPE) =c name    	"have to be name"
+		 | P  	     			"preposition followed by name"      
+		   N: (^ NTYPE) = name}}
+	    AP*: ! $ (^ ADJUNCT)
+	    	 (^ NUM) = (! NUM)		"adjective agreement" 
+	    	 (^ GEN) = (! GEN)
+		 @(OT-MARK APattach);		"prefer APs after the noun (typical position)"
+ 	    PP*: ! $ (^ ADJUNCT)	 
+		 (! PTYPE) =c sem		"have to be semantic"
+		 @(OT-MARK PPattach)	 	"prefer PPs attached to NPs"   
+ 	  | PRON }. 
+
+
+AP --> ADV*: ! $ (^ ADJUNCT);
+       A
+       (COMMA).
+
+
+AdvP --> ADV: ! $ (^ ADJUNCT);
+   	 (COMMA).
+	    
+
+PP --> { P: ^ = !			"head of PP"
+            (! PTYPE) =c sem; 		"semantic type, ADJUNCT"
+    	 NP: (^ OBJ) = !
+     	     ! (^ NUM) = (^ OBJ NUM)	"preposition agreement"		
+     	     ! (^ GEN) = (^ OBJ GEN)
+    	| { P: ^ = !  
+            (! PTYPE) =c nosem;		"non-semantic type, OBL"
+            NP }      	 		"direct OBJ"
+	| { P: (^ DEF) = + ;		"definite Preposition followed by name"
+	    NP: (^ NTYPE) = name}
+    	}. 
+
+
+
+METARULEMACRO(_CAT _BASECAT _RHS) = "applies to all rules in the grammar"
+
+    { "just use the rule as stated"
+      "don't do anything to it; ALWAYS include this option"
+
+      _RHS
+
+     |"if it is an NP or an N, pass it to the NP
+      coordination rule"
+      "COM{EX RULE NP: the girl and the boy}"
+
+      e: _CAT $c { NP N };
+      @(NPCOORD _CAT)
+
+     |"if it is any other category, pass it to
+      the same category coordination rule"
+      "COM{EX RULE S: the girl sleeps and walks.}"
+      "COM{EX RULE PP: with the girl and in the park}"
+
+      e: _CAT ~$ { NP N };
+      @(SCCOORD _CAT)
+      }.
+      
+
+"COORDINATION RULES"
+
+NPCOORD(_CAT) = "coordination of nominals"
+   "COM{EX RULE NP: girls and boys}"
+   "This differs from SCCOORD in that the conjunction provides NUM pl to
+   the resulting coordinated f-structure and the person features are
+   resolved for the noun phrase."
+
+   _CAT: @IN-SET  "first nominal"
+         @NP-CONJUNCT; "calls person resolution template"
+
+   CONJnp: @PUSHUP; "conjunction"
+           "PUSHUP avoids vacuous ambiguity in constructions like:
+            COM{EX RULES NP: girls and boys}"
+
+   _CAT: @IN-SET "second nominal"
+         @NP-CONJUNCT.
+
+SCCOORD(_CAT) = "coordination of non-nominals"
+  "COM{EX RULES PP: with girls and with boys}"
+  "COM{EX RULES S: girls sleep and boys sleep.}"
+  "no features other than a COORD-FORM are provided to the coordinated
+  f-structure."
+
+   _CAT: @IN-SET; "first constituent"
+   (COMMA: @(OT-MARK GenBadPunct)) "optional comma; 
+                                    disprefered in generation"
+                       "COM{EX RULES S: girls sleep, and boys sleep.}"
+
+   CONJ: @PUSHUP; "conjunction"
+         "PUSHUP avoids vacuous ambiguity in constructions like:
+         COM{EX RULES S: boys walk and sleep.}" 
+
+   _CAT: @IN-SET "second constituent".
+
+
+----
+DEMO   PORTUGUESE    TEMPLATES (1.0)
+
+"TEMPLATES"
+
+NP-CONJUNCT = "called by the NP coordination rule to get the number"
+	  "person, and case correct"
+	  "COM{EX TEMPLATE NP: a cat and a dog}"
+	  
+	  { (! PERS)=c 1 "if any conjunct is first person,"
+	    @(PERS 1) "the whole NP is first person"
+	    
+	   |(! PERS)=c 2 "if any conjunct is second person,"
+	    { (^ PERS)=c 1 "the whole NP is second person"
+	     |(^ PERS)=2} "unless there was a first person conjunct"
+	    
+	   |(! PERS)=c 3
+	    { (^ PERS)=c 1
+	     |(^ PERS)=c 2
+	     |@(PERS 3)}} "third person if both conjuncts are"
+	  
+	  { (! NUM)=c pl "if have plural conjunct, whole NP is plural"
+	    @(NUM pl) 
+           |(! NUM)=c sg }
+	    "number with singular depends on conjunction (e.g., and vs. or)".
+
+
+OT-MARK(_mark) = _mark $ o::*.   "assigns an OT mark, from common templates"
+
+PASS(FRAME) = { FRAME  	 	 	"no passive, just give back subcat frame"
+	        (^ PASSIVE) = -     	"no passive"
+	      | FRAME			"passive"
+	      	(^ PASSIVE) = +		"mark as such"
+	    	(^ PARTICIPLE) =c past	"make sure to have a PASTP"
+	    	(^ OBJ)-->(^ SUBJ) 	"OBJ goes to SUBJ"
+	       { (^ SUBJ)-->(^ OBL-AG) 	"either make SUBJ OBL-AG"
+	      |  (^ SUBJ)--> NULL 	"or delete"
+	        }
+	       }. 
+
+DAT-SHIFT(SCHEMATA) = { SCHEMATA 
+	                | SCHEMATA 
+	                  (^ OBJ)-->(^ OBJ2)
+	                  (^ OBL-TO)-->(^ OBJ)
+		       }.
+
+PRED(P) = (^ PRED) = 'P'. 
+
+TENSE(T) = (^ TENSE) = T.  
+
+CASE(C) = (^ CASE) = C.   
+
+MOOD(M) = (^ MOOD) = M.
+
+DEF = (^ DEF).
+
+
+INTRANS(P) = (^ PRED) = 'P<(^SUBJ)>'.
+
+TRANS(P) = @(PASS (^ PRED)='P<(^ SUBJ) (^ OBJ)>').
+
+OPT-TRANS(P) = {@(TRANS P)| @(INTRANS P)}.			
+
+DITRANS(P) = @(PASS @(DAT-SHIFT (^ PRED)='P<(^ SUBJ) (^ OBJ) (^ OBL-TO)>')).
+
+
+VPRES = @(TENSE pres)				
+	@(MOOD indicative).					
+
+VPAST = @(TENSE past) 
+	@(MOOD indicative). 
+
+VERB-AGR(P N) = (^ SUBJ PERS) = P	"verb agreement"
+	      	(^ SUBJ NUM) = N.
+
+VERB-FORM-1SG = @(VERB-AGR 1 sg).
+
+VERB-FORM-2SG = @(VERB-AGR 2 sg).
+
+VERB-FORM-3SG = @(VERB-AGR 3 sg).		
+
+VERB-FORM-1PL = @(VERB-AGR 1 pl).
+
+VERB-FORM-2PL = @(VERB-AGR 2 pl).
+
+VERB-FORM-3PL = @(VERB-AGR 3 pl).
+
+
+VIMP(N) = (^ SUBJ PERS) = 2		"imperatives"
+       	  (^ SUBJ NUM) = N
+       	  (^ MOOD) = imperative.
+
+PASTP = (^ PARTICIPLE) = past.
+
+PASTP-AGR(N G) = (^ SUBJ NUM) = N	"participle agreement"
+	       	 (^ SUBJ GEN) = G.
+
+
+
+COUNT-NOUN(P N G) = @(PRED P)		"nouns"
+	             (^ NUM) = N
+		     (^ GEN) = G	
+	             (^ PERS) = 3
+	             (^ NTYPE) = count.
+
+
+PRON(Z N T) = (^ PRED) = 'pro'		"pronouns"			
+	      (^ NUM) = N
+	      (^ PERS) = Z
+	      (^ PRON-TYPE) = T.
+
+
+PRON-POSS(Z N G) = (^ PRED) = 'pro'
+	      	   (^ PERS) = Z
+	      	   (^ NUM) = N                   
+    		   (^ GEN) = G                   
+    		   (^ PRON-TYPE) = poss. 
+    
+NAME(P) = @(PRED P)			"names"
+	   (^ NUM) = sg
+	   (^ PERS) = 3
+	   (^ NTYPE) = name.
+
+
+PREP(P) = { (^ PRED) = 'P<(^OBJ)>'	"prepositions" 
+	    (^ PTYPE) = sem
+	  | (^ PTYPE) = nosem
+	    (^ PFORM) = P }.
+
+
+----
+
+DEMO PORTUGUESE  LEXICON (1.0)
+
+"PERSONAL PRONOUNS"
+
+Eu      PRON * @(PRON 1 sg pers).					
+
+eu      PRON * @(PRON 1 sg pers).
+
+Tu      PRON * @(PRON 2 sg pers).						
+
+tu      PRON * @(PRON 2 sg pers).
+
+Ele     PRON * @(PRON 3 sg pers)
+	        (^ GEN) = masc.				
+
+ele     PRON * @(PRON 3 sg pers)
+	        (^ GEN) = masc.
+
+Ela     PRON * @(PRON 3 sg pers)
+		(^ GEN) = fem.						
+
+ela     PRON * @(PRON 3 sg pers)
+	       	(^ GEN) = fem.
+
+Você    PRON * @(PRON 3 sg pers).					
+
+você    PRON * @(PRON 3 sg pers).
+
+Nós     PRON * @(PRON 1 pl pers).					
+
+nós     PRON * @(PRON 1 pl pers).
+
+Vocês   PRON * @(PRON 2 pl pers).   
+
+vocês   PRON * @(PRON 2 pl pers).					
+
+Eles    PRON * @(PRON 3 pl pers)
+	       	(^ GEN) = masc.  				
+
+eles    PRON * @(PRON 3 pl pers)
+	        (^ GEN) = masc.
+
+Elas    PRON * @(PRON 3 pl pers)
+                (^ GEN) = fem.						
+
+elas    PRON * @(PRON 3 pl pers)
+	        (^ GEN) = fem.   
+
+
+"POSSESIVE PRONOUNS"
+
+meu PRON * @(PRON-POSS 1 sg masc).						
+
+minha PRON * @(PRON-POSS 1 sg fem). 					
+
+meus PRON * @(PRON-POSS 1 pl masc). 					
+
+minhas PRON * @(PRON-POSS 1 pl fem). 						
+
+
+"VERBS"
+
+adormeceu      V * @(OPT-TRANS adormecer)				
+      	 	   @VERB-FORM-3SG
+	  	   @VPAST.
+
+"comer inf hinzufügen"								
+
+
+como   	        V * @(OPT-TRANS comer)		
+               	    @VERB-FORM-1SG
+		    @VPRES.
+
+comes		V * @(OPT-TRANS comer)
+      	   	    @VERB-FORM-2SG
+		    @VPRES.
+
+come		V * @(OPT-TRANS comer)
+           	    { @VERB-FORM-3SG
+	   	      @VPRES
+		    | @(VIMP sg) }.						
+
+comemos 	V * @(OPT-TRANS comer)
+            	    @VERB-FORM-1PL
+	    	    @VPAST.					
+
+comem   	V * @(OPT-TRANS comer)
+            	    { @(VERB-FORM-2PL) | @(VERB-FORM-3PL) }
+	            @VPRES.
+
+Comi 		V * @(OPT-TRANS comer)
+      	  	    @VERB-FORM-1SG
+	  	    @VPAST.
+
+comi    	V * @(OPT-TRANS comer)							
+      	    	    @VERB-FORM-1SG
+	    	    @VPAST.
+
+comeste 	V * @(OPT-TRANS comer)
+      	    	    @VERB-FORM-2SG
+	    	    @VPAST.
+
+comeu		V * @(OPT-TRANS comer)
+      	    	    @VERB-FORM-3SG
+	    	    @VPAST.
+
+comeram		V * @(OPT-TRANS comer)
+            	    { @(VERB-FORM-2PL) | @(VERB-FORM-3PL) }
+	    	    @VPAST.
+
+comido		V * { @(TRANS comer) | @(DITRANS comer)}					
+	    	    @PASTP
+	    	    @(PASTP-AGR sg masc).
+
+comida      	V * { @(TRANS comer) | @(DITRANS comer)}				
+	    	    @PASTP
+		    @(PASTP-AGR sg fem)
+		    @(OT-MARK cat);					"prefer this category"
+		N * @(COUNT-NOUN comida sg fem).
+
+comidos	    	V * { @(TRANS comer) | @(DITRANS comer)}
+	    	    @PASTP
+	    	    @(PASTP-AGR pl masc). 
+
+comidas     	V * { @(TRANS comer) | @(DITRANS comer)}					
+	    	    @PASTP
+	    	    @(PASTP-AGR pl fem)
+		    @(OT-MARK cat);					"prefer this category"
+		N * @(COUNT-NOUN comida pl fem).
+
+Fecha 		V * @(TRANS fechar)
+      	  	    { @VERB-FORM-3SG
+	  	      @VPRES
+		    | @(VIMP sg) }.
+
+fecha 		V * @(TRANS fechar)
+      	  	    { @VERB-FORM-3SG
+	  	    @VPRES
+		    | @(VIMP sg) }.
+
+falam 		V * @(INTRANS falar)					
+      	            { @VERB-FORM-2PL | @VERB-FORM-3PL}
+      	   	    @VPRES.
+
+Falem 		V * @(OPT-TRANS falar)
+          	    @(VIMP pl).
+
+
+perseguido 	V * @(TRANS perseguir)		 
+	   	    @PASTP
+	   	    @(PASTP-AGR sg masc).
+
+escrita 	V * { @(TRANS escrever) | @(DITRANS escrever)}	 	
+	   	    @PASTP
+	   	    @(PASTP-AGR sg fem).
+
+decorou 	V * @(TRANS decorar)
+      	  	    @VERB-FORM-3SG
+	  	    @VPAST.
+
+são	  	V * @(TRANS ser)				
+          	    { @(VERB-FORM-2PL) | @(VERB-FORM-3PL) }
+	  	    @VPRES.
+
+dorme  		V * @(INTRANS dormir)				"IMP"
+          	    @VERB-FORM-3SG
+	  	    @VPRES.
+
+fala		V * @(OPT-TRANS falar)				"IMP"
+          	    @VERB-FORM-3SG
+	  	    @VPRES.
+
+espera 		V * @(OPT-TRANS esperar)			"IMP"
+          	    { @VERB-FORM-3SG
+	  	      @VPRES
+		    | @(VIMP sg) }.
+
+Espera 		V * @(OPT-TRANS esperar)			"IMP"
+          	    { @VERB-FORM-3SG
+	  	      @VPRES
+		    | @(VIMP sg) }.
+
+esperou 	V * @(OPT-TRANS esperar)
+      	  	    @VERB-FORM-3SG
+	  	    @VPAST.
+
+prepararam      V * @(OPT-TRANS preparar)				
+               	    { @(VERB-FORM-2PL) | @(VERB-FORM-3PL) }
+	       	    @VPAST.
+
+Prepararam      V * @(OPT-TRANS preparar)				
+               	    { @(VERB-FORM-2PL) | @(VERB-FORM-3PL) }
+	       	    @VPAST.
+
+preparam        V * @(OPT-TRANS preparar)
+               	    { @(VERB-FORM-2PL) | @(VERB-FORM-3PL) }
+	       	    @VPRES.
+		    
+Preparam        V * @(OPT-TRANS preparar)
+               	    { { @(VERB-FORM-2PL) | @(VERB-FORM-3PL) }
+	       	       @VPRES
+		    | @(VIMP pl) }. 
+
+crescem 	V * @(INTRANS crescer)
+            	    { @(VERB-FORM-2PL) | @(VERB-FORM-3PL) }
+	            @VPRES.
+		    
+
+
+"AUXILARIES"
+
+
+fui AUX * @(TENSE past)
+    	  @VERB-FORM-1SG.
+
+foste AUX * @(TENSE past)
+    	  @VERB-FORM-2SG.
+
+foi AUX * @(TENSE past)
+    	  @VERB-FORM-3SG.
+
+fomos AUX * @(TENSE past)
+    	    @VERB-FORM-1PL.
+
+foram AUX * @(TENSE past)
+    	  { @VERB-FORM-2PL | @VERB-FORM-3PL}.
+
+
+
+"DETERMINERS"
+
+O       D * (^ DEF) = +
+      	    (^ NUM) = sg
+	    (^ GEN) = masc.
+ 
+o       D * (^ DEF) = +
+      	    (^ NUM) = sg
+	    (^ GEN) = masc.
+
+Os      D * (^ DEF) = +
+      	    (^ NUM) = pl
+	    (^ GEN) = masc.
+
+os      D * (^ DEF) = +
+      	    (^ NUM) = pl
+	    (^ GEN) = masc.
+
+A	D * (^ DEF) = +
+      	    (^ NUM) = sg
+	    (^ GEN) = fem.
+
+a	D * (^ DEF) = +
+      	    (^ NUM) = sg
+	    (^ GEN) = fem.
+
+As	D * (^ DEF) = +
+      	    (^ NUM) = pl
+	    (^ GEN) = fem.
+
+as    	D * (^ DEF) = +
+      	    (^ NUM) = pl
+	    (^ GEN) = fem.
+
+Um      D * (^ DEF) = -
+      	    (^ NUM) = sg
+	    (^ GEN) = masc.
+
+um      D * (^ DEF) = -
+      	    (^ NUM) = sg
+	    (^ GEN) = masc.
+
+Uns     D * (^ DEF) = -
+      	    (^ NUM) = pl
+	    (^ GEN) = masc.
+
+uns  	D * (^ DEF) = -
+      	    (^ NUM) = pl
+	    (^ GEN) = masc.
+
+Uma	D * (^ DEF) = -
+      	    (^ NUM) = sg
+	    (^ GEN) = fem.
+
+uma	D * (^ DEF) = -
+      	    (^ NUM) = sg
+	    (^ GEN) = fem.
+
+Umas	D * (^ DEF) = -
+      	    (^ NUM) = pl
+	    (^ GEN) = fem.
+
+umas  	D * (^ DEF) = -
+      	    (^ NUM) = pl
+	    (^ GEN) = fem.
+
+
+
+"NOUNS"
+
+tangerina  N * @(COUNT-NOUN tangerina sg fem). 		
+
+tangerinas N * @(COUNT-NOUN tangerina pl fem).
+
+jardim 	   N * @(COUNT-NOUN jardim sg masc).	
+
+jardims	   N * @(COUNT-NOUN jardim pl masc).
+	   
+gelado     N * @(COUNT-NOUN gelado sg masc).
+
+porta      N * @(COUNT-NOUN porta sg fem).
+
+gato       N * @(COUNT-NOUN gato sg masc).
+
+rato       N * @(COUNT-NOUN rato sg masc).
+
+bolo 	   N * @(COUNT-NOUN bolo sg masc).
+
+filhos     N * @(COUNT-NOUN filhos pl masc).
+
+irmão      N * @(COUNT-NOUN irmão sg masc).
+
+carta 	   N * @(COUNT-NOUN carta sg fem).
+
+sala 	   N * @(COUNT-NOUN sala sg fem).
+
+festa  	   N * @(COUNT-NOUN festa sg fem).
+
+jantar 	   N * @(COUNT-NOUN jantar sg masc).
+
+legumes    N * @(COUNT-NOUN legume pl masc).
+
+treino     N * @(COUNT-NOUN treino sg masc).
+
+
+
+"ADJECTIVES"
+
+pequena    A * @(PRED pequena)
+	       (^ NUM) = sg
+	       (^ GEN) = fem.
+
+pequeno    A * @(PRED pequeno)
+	       (^ NUM) = sg
+	       (^ GEN) = masc.
+
+pequenas   A * @(PRED pequeno)
+	       (^ NUM) = pl
+	       (^ GEN) = fem.
+	    
+pequenos   A * @(PRED pequeno)
+	       (^ NUM) = pl
+	       (^ GEN) = masc.
+	   
+preto      A * @(PRED preto)
+               (^ NUM) = sg
+	       (^ GEN) = masc.
+
+preta      A * @(PRED preto)
+	       (^ NUM) = sg
+	       (^ GEN) = fem.
+
+baixo      A * @(PRED baixo)
+       	       (^ NUM) = sg
+	       (^ GEN) = masc.
+
+vermelhas A * @(PRED vermelho)
+	       (^ NUM) = pl
+	       (^ GEN) = fem.
+	    
+
+"ADVERBS"
+
+lentamente	ADV * @(PRED lentamente).
+
+rapidamente 	ADV * @(PRED rapidamente).
+
+cuidadosamente 	ADV * @(PRED cuidadosamente). 
+
+
+"PREPOSITIONS"
+
+por     P * @(PREP por).
+
+pelo    P * @(PREP por).       
+	    (^ DEF) = +
+      	    (^ NUM) = sg
+	    (^ GEN) = masc.
+	    
+pelos   P * @(PREP por)      
+	    (^ DEF) = +
+      	    (^ NUM) = pl
+	    (^ GEN) = masc.
+
+pela    P * @(PREP por)      
+	    (^ DEF) = +
+      	    (^ NUM) = sg
+	    (^ GEN) = fem.
+
+pelas   P * @(PREP por)        
+	    (^ DEF) = +
+      	    (^ NUM) = pl
+	    (^ GEN) = fem.
+
+
+em  	P * @(PREP em).
+
+no      P * @(PREP em)    
+	    (^ DEF) = +
+      	    (^ NUM) = sg
+	    (^ GEN) = masc.
+
+nos     P * @(PREP em)       
+	    (^ DEF) = +
+      	    (^ NUM) = pl
+	    (^ GEN) = masc.
+
+na      P * @(PREP em)       
+	    (^ DEF) = +
+      	    (^ NUM) = sg
+	    (^ GEN) = fem.
+
+nas     P * @(PREP em)       
+	    (^ DEF) = +
+      	    (^ NUM) = pl
+	    (^ GEN) = fem.
+
+num     P * @(PREP en)       
+	    (^ DEF) = -
+      	    (^ NUM) = sg
+	    (^ GEN) = masc.
+
+nuns    P * @(PREP em)       
+	    (^ DEF) = -
+      	    (^ NUM) = pl
+	    (^ GEN) = masc.
+
+numa    P * @(PREP em)       
+	    (^ DEF) = -
+      	    (^ NUM) = sg
+	    (^ GEN) = fem.
+
+numas   P * @(PREP em)       
+	    (^ DEF) = -
+      	    (^ NUM) = pl
+	    (^ GEN) = fem.
+
+do      P * @(PREP de)    
+	   (^ DEF) = +
+      	   (^ NUM) = sg
+	   (^ GEN) = masc.
+
+
+"NAMES" 
+
+João     N * @(NAME João)
+	     @DEF			"needs a DEF value; article is obligatory"
+	     (^ NUM) = sg
+	     (^ GEN) = masc.			
+
+Diogo    N * @(NAME Diogo)
+	     @DEF
+	     (^ NUM) = sg
+	     (^ GEN) = masc.
+
+Eduardo  N * @(NAME Eduardo)
+	     @DEF
+	     (^ NUM) = sg
+	     (^ GEN) = masc.
+
+Maria    N * @(NAME Maria)
+	     @DEF
+	     (^ NUM) = sg
+	     (^ GEN) = fem.
+
+
+"CONJUCTIONS"
+
+e        CONJ * (^ COORD-FORM) = e; 
+	 CONJnp * (^ COORD-FORM) = e
+		   (^ NUM) = pl.
+
+"PUNCTUATION"
+
+. PERIOD * (^ STMT-TYPE) = declarative. 
+
+, COMMA  * .			
+
+!  EXCL * (^ STMT-TYPE) = exclamation.
+
+----

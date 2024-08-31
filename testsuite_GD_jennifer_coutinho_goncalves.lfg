@@ -1,0 +1,119 @@
+# Grammar Development: Testsuite Final Project
+# Summer Semester 2024
+# Jennifer Coutinho Goncalves
+# 1001682
+
+# sentences that should work
+
+O gato preto comeu o bolo. 
+
+# passive 
+
+A carta foi escrita lentamente por ela na sala.
+
+Um pequeno gato foi perseguido por um rato.
+
+# adverbs 
+
+Ela rapidamente e cuidadosamente decorou a sala.
+
+Eles prepararam rapidamente o jantar.
+
+# prepositions 
+
+Ela comeu um gelado no jardim. 
+
+O gelado foi comido por ela. 
+
+# conjuctions 
+
+O João e o Diogo comem no Eduardo.  
+
+O meu irmão come e dorme. 
+
+Tu e ela falam rapidamente. 
+
+# null-subject 
+
+Comi uma tangerina.
+
+Prepararam a festa. 
+
+# imperative
+
+Fecha a porta!
+
+Espera! 
+
+# possesives 
+
+O meu irmão come.
+
+As minhas tangerinas crescem no jardim.
+
+
+
+# sentences that should not work 
+
+# subject-verb agreement violation (consistency)
+# specifically in the context of imperatives
+# subject 'you' is implied
+# verb should be in 2 person form, e.g. fala, come
+
+Falas baixo!
+
+Comemos os teus legumes!
+
+# unification failure, subject-verb agreement (consistency)
+
+Eu comes uma tangerina. 
+
+Nós falem do Eduardo. 
+
+Os irmãos fala. 
+
+# article agreement violation (consistency)
+
+Ela come uma bolo. 
+
+Nós comemos os tangerinas. 
+
+# preposition agreement violation (consistency)
+
+Tu comes a tangerina no jardims.
+
+O irmão adormeceu na jardim. 
+
+O Diogo espera pela treino. 
+
+# possesive pronoun agreement (consistency) 
+
+A minha irmão come. 
+
+As meus tangerinas crescem no jardim. 
+
+# article required for proper nouns (names)
+
+A Maria e Diogo preparam a comida.  
+
+Maria comeu uma tangerina. 
+
+# adjective agreement violation (consistency)
+
+Eu como as tangerinas pequenos.
+
+O gato preta come as tangerinas.
+
+# missing PRED value, completeness violation
+
+Ela fecha. 
+
+
+
+
+
+
+
+
+
+
