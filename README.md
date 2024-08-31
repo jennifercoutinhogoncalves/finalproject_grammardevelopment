@@ -63,7 +63,7 @@ Templates: common.templates.lfg
 Glossing: glossing_GD_jennifer_coutinho_goncalves.pdf
 LFG Paper: paper_LFG_jennifer_coutinho_goncalves.pdf
 
-# GitHub Link: 
+# GitHub Link: https://github.com/jennifercoutinhogoncalves/finalproject_grammardevelopment
 
 # References 
 
